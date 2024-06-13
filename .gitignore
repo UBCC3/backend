@@ -1,3 +1,15 @@
-/env
-**/__pycache__/*
-./.env
+# Visual Studio Code
+**/.vscode/
+.vscode/*
+!.vscode/settings.json 
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# System files
+.DS_Store
+**/env
+.env
+**/__pycache__/
