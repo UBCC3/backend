@@ -179,9 +179,9 @@ def post_new_job(
 
             session.refresh(job)
             # TODO: change for deployment
-            script_location = "cluster-api/submit_job.py"
+            script_location = "testing/submit_job.py"
             cluster_command = [
-                "ssh","cluster","python3", script_location, job.parameters
+                "ssh","cluster","python3", script_location, "<<", "EOF", job.parameters, "EOF"
             ]
             print("Parameters: ",job.parameters, "\n")
             return item_to_dict(job)
