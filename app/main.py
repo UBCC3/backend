@@ -5,8 +5,10 @@ from fastapi.logger import logger
 from pydantic_settings import BaseSettings
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from .routers import users, calculations, jobs, structures
+from cluster import interaction_with_cluster
 
 import psutil
 
@@ -32,6 +34,17 @@ app.include_router(users.router)
 app.include_router(calculations.router)
 app.include_router(jobs.router)
 app.include_router(structures.router)
+
+scheduler = BackgroundScheduler()
+
+@app.on_event("startup")
+def start_scheduler():
+    scheduler.add_job(interaction_with_cluster, 'interval', hours=2)
+    scheduler.start()
+
+@app.on_event("shutdown")
+def shutdown_scheduler():
+    scheduler.shutdown()
 
 @app.get("/")
 async def root():

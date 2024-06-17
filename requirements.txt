@@ -1,4 +1,5 @@
 asgiref
+apscheduler
 boto3
 botocore
 cffi
