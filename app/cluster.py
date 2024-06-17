@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import os
@@ -38,7 +39,8 @@ def check_jobs_status():
         stdout, stderr = process.communicate(input=json_data)
         if process.returncode != 0:
             raise HTTPException(status_code=500, detail=stderr)
-        return_data = json.loads(stdout)
+        json_data = base64.b64decode(stdout).decode('utf-8')
+        return_data = json.loads(json_data)
         for key, value in return_data.items():
             if value == 0:
                 pass
@@ -64,12 +66,13 @@ def get_all_running_jobs_as_dict() -> Dict[UUID, int]:
     return jobs_dict
 
 def fetch_result(job_id):
-    object_name = '/jobs/{job_id}/' # TODO: use the corerct path
+    object_name = f'/jobs/{job_id}/' # TODO: use the corerct path
     response = create_presigned_post(object_name)
     send_data = {"JobID": job_id, "PresignedResponse": response}
     json_data = json.dumps(send_data)
+    encoded_json_data = base64.b64encode(json_data.encode()).decode('utf-8')
 
-    ssh_command = ["ssh", "cluster", "python3 check_status.py"]
+    ssh_command = ["ssh", "cluster", "python3 fetch_organized_result.py"]
 
     try:
         process = subprocess.Popen(
@@ -79,15 +82,18 @@ def fetch_result(job_id):
             stderr=subprocess.PIPE,
             text=True
         )
-        stdout, stderr = process.communicate(input=json_data)
+        stdout, stderr = process.communicate(input=encoded_json_data)
         if process.returncode != 0:
             raise HTTPException(status_code=500, detail=stderr)
-        return_data = json.loads(stdout)
+        json_data = base64.b64decode(stdout).decode('utf-8')
+        return_data = json.loads(json_data)
 
         #TODO: process the return_data
 
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=str(e))
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail="Failed to decode JSON from returned data.")
 
 #TODO: add the function to send presigned URL for the zip file
 
