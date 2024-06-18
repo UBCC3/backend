@@ -8,8 +8,6 @@ from typing import List, Union
 
 
 from typing import List
-import sys
-import subprocess
 import uuid
 from ..models import JobModel, JobStatus, CreateJobDTO, UpdateJobDTO, StructureOrigin
 from fastapi import File, UploadFile
@@ -178,12 +176,6 @@ def post_new_job(
                 session.commit()
 
             session.refresh(job)
-            # TODO: change for deployment
-            script_location = "testing/submit_job.py"
-            cluster_command = [
-                "ssh","cluster","python3", script_location, "<<", "EOF", job.parameters, "EOF"
-            ]
-            print("Parameters: ",job.parameters, "\n")
             return item_to_dict(job)
         except SQLAlchemyError as e:
             session.rollback()
