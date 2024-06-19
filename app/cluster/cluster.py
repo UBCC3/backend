@@ -20,9 +20,9 @@ def submit_job(job: CreateJobDTO) -> bool:
     A boolean value for if the job was submitted
     """
     # TODO: change for deployment
-    script_location = os.environ.get("CLUSTER_LOC")
+    script_loc = os.environ.get("CLUSTER_LOC")
     cluster_command = [
-        "ssh","cluster","python3", script_location
+        "ssh","cluster","python3", script_loc
     ]
     try:
         submit_process = subprocess.Popen(cluster_command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -33,3 +33,27 @@ def submit_job(job: CreateJobDTO) -> bool:
     else:
         return True
     
+def cancel_job(job_id) -> bool:
+    """
+    Cancel a job currently queued or running.
+
+    Args:
+    job_id: str provided as job id by SQL
+
+    Returns: A boolean value for if it failed or succeeded
+    """
+    # TODO: change for development
+    # NOTE: adjust the .env file
+    script_loc = os.environ.get("CLUSTER_LOC")
+    ssh_command = [
+        "ssh", "cluster", "python3", script_loc
+    ]
+
+    try:
+        submit_process = subprocess.Popen(ssh_command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stdout, stderr = subprocess.communicate(job_id)
+    except subprocess.CalledProcessError as err:
+        print("ERROR in calling cluster {err.stderr}")
+        return False
+    else:
+        return True
