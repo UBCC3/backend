@@ -32,3 +32,4 @@ def submit_job(job: CreateJobDTO) -> bool:
         return False
     else:
         return True
+    
