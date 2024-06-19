@@ -107,18 +107,8 @@ async def create_new_job(
     token: str = Depends(token_auth),
 ):
     job = CreateJobDTO(job_name=job_name, parameters=json.loads(parameters))
-    # TODO: change for deployment
-    script_location = "testing/submit_job.py"
-    cluster_command = [
-        "ssh","cluster","python3", script_location
-    ]
-    try:
-        submit_process = subprocess.Popen(cluster_command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, stderr = subprocess.communicate(job.parameters)
-    except:
-        return False
-    else:
-        return post_new_job(email, job, file)
+
+    return post_new_job(email, job, file)
 
 
 @router.patch("/{job_id}", response_model=Union[bool, JwtErrorModel])
@@ -133,17 +123,7 @@ async def patch_job(job_id: UUID, job: UpdateJobDTO, token: str = Depends(token_
 
 @router.delete("/{job_id}", response_model=Union[bool, JwtErrorModel])
 async def delete_job(job_id: UUID, token: str = Depends(token_auth)):
-    # TODO: change for deployment
-    script_location = "testing/cancel_job.py"
-    ssh_command = [
-        "ssh", "cluster", "python3", script_location
-    ]
-    try:
-        cancel_process = subprocess.Popen(cluster_command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, stderr = subprocess.communicate(stdin=job_id)
-    except:
-        return False
-    else:
+
         return remove_job(job_id)
 
 

@@ -10,6 +10,7 @@ from pathlib import Path
 
 dotenv_path = os.getcwd()+"/.env"
 load_dotenv(dotenv_path)
+
 class DB_Engine(BaseModel):
     _engine: Engine = PrivateAttr()
 
