@@ -12,9 +12,10 @@ from dotenv import load_dotenv
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from database.db_engine import db_engine
-from database.db_tables import Job
-from models import JobStatus
+from ..database.db_engine import db_engine
+from ..database.db_tables import Job
+from ..database.job_management import update_job
+from ..models import JobStatus, UpdateJobDTO
 
 dotenv_path = os.getcwd()+"/.env"
 load_dotenv(dotenv_path)
@@ -48,7 +49,8 @@ def check_jobs_status():
                 fetch_result(key)
             else:
                 error_message = value
-                update_job_status(key, "FAILED", error_message)
+                update_data = UpdateJobDTO(status=JobStatus.FAILED, parameters={"error_message": error_message})
+                update_job(key, update_data)
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -125,7 +127,3 @@ def create_presigned_post(object_name,
 
     # The response contains the presigned URL and required fields
     return response       
-
-def update_job_status(job_id, status, content):
-    # TODO
-    pass
