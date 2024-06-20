@@ -1,14 +1,14 @@
 import os
 from contextlib import asynccontextmanager
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic_settings import BaseSettings
-from apscheduler.schedulers.background import BackgroundScheduler
 
-from .routers import users, calculations, jobs, structures
-from cluster import interaction_with_cluster
+from .cluster.cluster import interaction_with_cluster
+from .routers import calculations, jobs, structures, users
 
 dotenv_path = os.getcwd()+"/.env"
 load_dotenv(dotenv_path)
