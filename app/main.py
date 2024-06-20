@@ -1,7 +1,6 @@
 import os
 import sys
 from fastapi import Depends, FastAPI
-from fastapi.applications import Lifespan
 from fastapi.logger import logger
 from pydantic_settings import BaseSettings
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +11,7 @@ from .routers import users, calculations, jobs, structures
 from cluster import interaction_with_cluster
 
 import psutil
+from contextlib import asynccontextmanager
 
 dotenv_path = os.getcwd()+"/.env"
 load_dotenv(dotenv_path)
@@ -21,11 +21,20 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    scheduler = BackgroundScheduler()
+    # TODO: Consider the need to dynamically adjust interval settings
+    scheduler.add_job(interaction_with_cluster, 'interval', hours=2)
+    scheduler.start()
+    yield
+    scheduler.shutdown()
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.environ.get("FE_URL")],  # Replace with the URL of frontend
+    allow_origins=[os.environ.get("FE_URL")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,18 +44,6 @@ app.include_router(users.router)
 app.include_router(calculations.router)
 app.include_router(jobs.router)
 app.include_router(structures.router)
-
-scheduler = BackgroundScheduler()
-
-async def start_scheduler():
-    scheduler.add_job(interaction_with_cluster, 'interval', hours=2) # TODO: update the hours value
-    scheduler.start()
-
-async def shutdown_scheduler():
-    scheduler.shutdown()
-
-app.add_lifespan_event_handler("startup", start_scheduler)
-app.add_lifespan_event_handler("shutdown", shutdown_scheduler)
 
 @app.get("/")
 async def root():
