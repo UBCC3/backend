@@ -1,17 +1,14 @@
 import os
-import sys
-from fastapi import Depends, FastAPI
-from fastapi.logger import logger
-from pydantic_settings import BaseSettings
-from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+
 from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic_settings import BaseSettings
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from .routers import users, calculations, jobs, structures
 from cluster import interaction_with_cluster
-
-import psutil
-from contextlib import asynccontextmanager
 
 dotenv_path = os.getcwd()+"/.env"
 load_dotenv(dotenv_path)
