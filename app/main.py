@@ -1,6 +1,7 @@
 import os
 import sys
 from fastapi import Depends, FastAPI
+from fastapi.applications import Lifespan
 from fastapi.logger import logger
 from pydantic_settings import BaseSettings
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,14 +38,15 @@ app.include_router(structures.router)
 
 scheduler = BackgroundScheduler()
 
-@app.on_event("startup")
-def start_scheduler():
-    scheduler.add_job(interaction_with_cluster, 'interval', hours=2)
+async def start_scheduler():
+    scheduler.add_job(interaction_with_cluster, 'interval', hours=2) # TODO: update the hours value
     scheduler.start()
 
-@app.on_event("shutdown")
-def shutdown_scheduler():
+async def shutdown_scheduler():
     scheduler.shutdown()
+
+app.add_lifespan_event_handler("startup", start_scheduler)
+app.add_lifespan_event_handler("shutdown", shutdown_scheduler)
 
 @app.get("/")
 async def root():
