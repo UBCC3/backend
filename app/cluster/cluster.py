@@ -25,6 +25,7 @@ def submit_job(job: CreateJobDTO) -> bool:
         "ssh","cluster","python3", script_loc
     ]
     try:
+        job.parameters["action"] = "submit"
         submit_process = subprocess.Popen(cluster_command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         stdout, stderr = subprocess.communicate(job.parameters)
     except subprocess.CalledProcessError as err:
@@ -50,8 +51,9 @@ def cancel_job(job_id) -> bool:
     ]
 
     try:
+        job = {"job_id": job_id, "action": "cancel"}
         submit_process = subprocess.Popen(ssh_command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, stderr = subprocess.communicate(job_id)
+        stdout, stderr = subprocess.communicate(job)
     except subprocess.CalledProcessError as err:
         print("ERROR in calling cluster {err.stderr}")
         return False
