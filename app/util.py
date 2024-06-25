@@ -128,6 +128,34 @@ def upload_to_s3(file: File, structure_id: UUID):
     except ClientError as e:
         logging.error(e)
         return False
+    
+def create_presigned_post(object_name, fields=None, conditions=None, expiration=3600):
+    """Generate a presigned URL S3 POST request to upload a file
+    :param bucket_name: string
+    :param object_name: string
+    :param fields: Dictionary of prefilled form fields
+    :param conditions: List of conditions to include in the policy
+    :param expiration: Time in seconds for the presigned URL to remain valid
+    :return: Dictionary with the following keys:
+        url: URL to post to
+        fields: Dictionary of form fields and values to submit with the POST
+    :return: None if error.
+    """
+
+    # Generate a presigned S3 POST URL
+    s3_client = boto3.client('s3')
+    try:
+        response = s3_client.generate_presigned_post(os.environ.get("S3_BUCKET"),
+                                                     object_name,
+                                                     Fields=fields,
+                                                     Conditions=conditions,
+                                                     ExpiresIn=expiration)
+    except ClientError as e:
+        logging.error(e)
+        return None
+
+    # The response contains the presigned URL and required fields
+    return response       
 
 # NOTE: route for downloading disabled for now
 #       files in s3 should all be in .xyz from the upload fn

@@ -1,13 +1,10 @@
 import base64
 import json
-import logging
 import os
 import subprocess
 from typing import Dict
 from uuid import UUID
 
-import boto3
-from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -16,6 +13,7 @@ from ..database.db_engine import db_engine
 from ..database.db_tables import Job
 from ..database.job_management import update_job
 from ..models import JobStatus, UpdateJobDTO
+from ..util import create_presigned_post
 
 dotenv_path = os.getcwd()+"/.env"
 load_dotenv(dotenv_path)
@@ -98,32 +96,3 @@ def fetch_result(job_id):
         raise HTTPException(status_code=500, detail="Failed to decode JSON from returned data.")
 
 #TODO: add the function to send presigned URL for the zip file
-
-def create_presigned_post(object_name,
-                          fields=None, conditions=None, expiration=3600):
-    """Generate a presigned URL S3 POST request to upload a file
-    :param bucket_name: string
-    :param object_name: string
-    :param fields: Dictionary of prefilled form fields
-    :param conditions: List of conditions to include in the policy
-    :param expiration: Time in seconds for the presigned URL to remain valid
-    :return: Dictionary with the following keys:
-        url: URL to post to
-        fields: Dictionary of form fields and values to submit with the POST
-    :return: None if error.
-    """
-
-    # Generate a presigned S3 POST URL
-    s3_client = boto3.client('s3')
-    try:
-        response = s3_client.generate_presigned_post(os.environ.get("S3_BUCKET"),
-                                                     object_name,
-                                                     Fields=fields,
-                                                     Conditions=conditions,
-                                                     ExpiresIn=expiration)
-    except ClientError as e:
-        logging.error(e)
-        return None
-
-    # The response contains the presigned URL and required fields
-    return response       
