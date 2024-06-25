@@ -1,11 +1,6 @@
-import base64
-import json
-import os
-import subprocess
 from typing import Dict
 from uuid import UUID
 
-from dotenv import load_dotenv
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -13,33 +8,15 @@ from ..database.db_engine import db_engine
 from ..database.db_tables import Job
 from ..database.job_management import update_job
 from ..models import JobStatus, UpdateJobDTO
-from ..util import create_presigned_post
-
-dotenv_path = os.getcwd()+"/.env"
-load_dotenv(dotenv_path)
+from ..util import cluster_call, create_presigned_post
 
 def interaction_with_cluster():
     check_jobs_status()
 
 def check_jobs_status():
     jobs_dict = get_all_running_jobs_as_dict()
-    json_data = json.dumps(jobs_dict)
-
-    ssh_command = ["ssh", "cluster", "python3 check_status.py"]
-
     try:
-        process = subprocess.Popen(
-            ssh_command,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        stdout, stderr = process.communicate(input=json_data)
-        if process.returncode != 0:
-            raise HTTPException(status_code=500, detail=stderr)
-        json_data = base64.b64decode(stdout).decode('utf-8')
-        return_data = json.loads(json_data)
+        return_data = cluster_call("check", jobs_dict)
         for key, value in return_data.items():
             if value == 0:
                 pass
@@ -49,8 +26,9 @@ def check_jobs_status():
                 error_message = value
                 update_data = UpdateJobDTO(status=JobStatus.FAILED, parameters={"error_message": error_message})
                 update_job(key, update_data)
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+        
 
 def get_all_running_jobs_as_dict() -> Dict[UUID, int]:
     status_values = [JobStatus.RUNNING, JobStatus.SUBMITTED]
@@ -68,31 +46,8 @@ def get_all_running_jobs_as_dict() -> Dict[UUID, int]:
 def fetch_result(job_id):
     object_name = f'/jobs/{job_id}/' # TODO: use the corerct path
     response = create_presigned_post(object_name)
-    send_data = {"JobID": job_id, "PresignedResponse": response}
-    json_data = json.dumps(send_data)
-    encoded_json_data = base64.b64encode(json_data.encode()).decode('utf-8')
-
-    ssh_command = ["ssh", "cluster", "python3 fetch_organized_result.py"]
-
+    parameters = {"JobID": job_id, "PresignedResponse": response}
     try:
-        process = subprocess.Popen(
-            ssh_command,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        stdout, stderr = process.communicate(input=encoded_json_data)
-        if process.returncode != 0:
-            raise HTTPException(status_code=500, detail=stderr)
-        json_data = base64.b64decode(stdout).decode('utf-8')
-        return_data = json.loads(json_data)
-
-        #TODO: process the return_data
-
-    except subprocess.CalledProcessError as e:
+        return_data = cluster_call("fetch", parameters)
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail="Failed to decode JSON from returned data.")
-
-#TODO: add the function to send presigned URL for the zip file
