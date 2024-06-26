@@ -51,3 +51,21 @@ def fetch_result(job_id):
         return_data = cluster_call("fetch", parameters)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def submit_job(job):
+    try:
+        return_data = cluster_call("submit", job.parameters)
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+    else:
+        if return_data["status"] == "SUCCESS":
+            pass 
+    
+def cancel_job(job):
+    try:
+        return_data = cluster_call("cancel",job)
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+    else:
+        if return_data["status"] == "SUCCESS":
+            pass 
