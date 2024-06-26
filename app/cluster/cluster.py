@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 from ..models import CreateJobDTO
-env_var = os.getcws()+"/.env"
+env_var = os.getcwd()+"/.env"
 load_dotenv(env_var)
 
 def submit_job(job: CreateJobDTO) -> bool:
