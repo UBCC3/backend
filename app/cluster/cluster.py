@@ -1,61 +1,53 @@
-import sys
-import subprocess
-import os
-from dotenv import load_dotenv
-from pathlib import Path
+from typing import Dict
+from uuid import UUID
 
-from ..models import CreateJobDTO
-env_var = os.getcwd()+"/.env"
-load_dotenv(env_var)
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
-def submit_job(job: CreateJobDTO) -> bool:
-    """
-    Submit a new job to the cluster using ssh
-    
-    Args:
-    job: DTO of job
+from ..database.db_engine import db_engine
+from ..database.db_tables import Job
+from ..database.job_management import update_job
+from ..models import JobStatus, UpdateJobDTO
+from ..util import cluster_call, create_presigned_post
 
-    Returns: 
-    
-    A boolean value for if the job was submitted
-    """
-    # TODO: change for deployment
-    script_loc = os.environ.get("CLUSTER_LOC")
-    cluster_command = [
-        "ssh","cluster","python3", script_loc
-    ]
+def interaction_with_cluster():
+    check_jobs_status()
+
+def check_jobs_status():
+    jobs_dict = get_all_running_jobs_as_dict()
     try:
-        job.parameters["action"] = "submit"
-        submit_process = subprocess.Popen(cluster_command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, stderr = subprocess.communicate(job.parameters)
-    except subprocess.CalledProcessError as err:
-        print("ERROR in calling cluster {err.stderr}")
-        return False
-    else:
-        return True
-    
-def cancel_job(job_id) -> bool:
-    """
-    Cancel a job currently queued or running.
+        return_data = cluster_call("check", jobs_dict)
+        for key, value in return_data.items():
+            if value == 0:
+                pass
+            elif value == 1:
+                fetch_result(key)
+            else:
+                error_message = value
+                update_data = UpdateJobDTO(status=JobStatus.FAILED, parameters={"error_message": error_message})
+                update_job(key, update_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
 
-    Args:
-    job_id: str provided as job id by SQL
+def get_all_running_jobs_as_dict() -> Dict[UUID, int]:
+    status_values = [JobStatus.RUNNING, JobStatus.SUBMITTED]
+    jobs_dict = {}
 
-    Returns: A boolean value for if it failed or succeeded
-    """
-    # TODO: change for development
-    # NOTE: adjust the .env file
-    script_loc = os.environ.get("CLUSTER_LOC")
-    ssh_command = [
-        "ssh", "cluster", "python3", script_loc
-    ]
+    with Session(db_engine.engine) as session:
+        jobs = session.query(Job).filter(
+            Job.status.in_(status_values)
+        )
+        for job in jobs:
+            jobs_dict[job.id] = 0
 
+    return jobs_dict
+
+def fetch_result(job_id):
+    object_name = f'/jobs/{job_id}/' # TODO: use the corerct path
+    response = create_presigned_post(object_name)
+    parameters = {"JobID": job_id, "PresignedResponse": response}
     try:
-        job = {"job_id": job_id, "action": "cancel"}
-        submit_process = subprocess.Popen(ssh_command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, stderr = subprocess.communicate(job)
-    except subprocess.CalledProcessError as err:
-        print("ERROR in calling cluster {err.stderr}")
-        return False
-    else:
-        return True
+        return_data = cluster_call("fetch", parameters)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

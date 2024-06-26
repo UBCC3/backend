@@ -1,13 +1,16 @@
+import json
+import logging
 import os
-import jwt
-from dotenv import load_dotenv
-from fastapi import Depends, status, HTTPException, File
-from fastapi.security import HTTPBearer
+import subprocess
+from uuid import UUID
+
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
-import logging
-from uuid import UUID
+from dotenv import load_dotenv
+from fastapi import Depends, status, HTTPException, File
+from fastapi.security import HTTPBearer
+import jwt
 
 dotenv_path = os.getcwd()+"/.env"
 load_dotenv(dotenv_path)
@@ -128,6 +131,34 @@ def upload_to_s3(file: File, structure_id: UUID):
     except ClientError as e:
         logging.error(e)
         return False
+    
+def create_presigned_post(object_name, fields=None, conditions=None, expiration=3600):
+    """Generate a presigned URL S3 POST request to upload a file
+    :param bucket_name: string
+    :param object_name: string
+    :param fields: Dictionary of prefilled form fields
+    :param conditions: List of conditions to include in the policy
+    :param expiration: Time in seconds for the presigned URL to remain valid
+    :return: Dictionary with the following keys:
+        url: URL to post to
+        fields: Dictionary of form fields and values to submit with the POST
+    :return: None if error.
+    """
+
+    # Generate a presigned S3 POST URL
+    s3_client = boto3.client('s3')
+    try:
+        response = s3_client.generate_presigned_post(os.environ.get("S3_BUCKET"),
+                                                     object_name,
+                                                     Fields=fields,
+                                                     Conditions=conditions,
+                                                     ExpiresIn=expiration)
+    except ClientError as e:
+        logging.error(e)
+        return None
+
+    # The response contains the presigned URL and required fields
+    return response       
 
 # NOTE: route for downloading disabled for now
 #       files in s3 should all be in .xyz from the upload fn
@@ -162,3 +193,28 @@ def read_from_s3(file_name: str, structure_id: UUID):
 
 def item_to_dict(item):
     return {c.name: getattr(item, c.name) for c in item.__table__.columns}
+
+def cluster_call(action: str, parameters: dict):
+    """communicate with the scripts on the compute cluster"""
+    command_data = {
+        "action": action,
+        "parameters": parameters
+    }
+    json_data = json.dumps(command_data)
+    ssh_command = ["ssh", "cluster", "python3 main.py"]
+
+    try:
+        process = subprocess.Popen(
+            ssh_command,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        stdout, stderr = process.communicate(input=json_data)
+        if process.returncode != 0:
+            raise HTTPException(status_code=500, detail=stderr)
+        return json.loads(stdout)
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
