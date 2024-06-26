@@ -22,8 +22,6 @@ from ..database.job_management import (
 from ..database.structure_management import get_structure_by_job_id
 
 import json
-import sys
-import subprocess
 
 from ..models import (
     JobModel,

@@ -1,7 +1,8 @@
 from typing import Dict
 from uuid import UUID
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from ..database.db_engine import db_engine
@@ -59,7 +60,7 @@ def submit_job(job):
         raise HTTPException(status_code=500, detail=str(error))
     else:
         if return_data["status"] == "SUCCESS":
-            pass 
+            return JSONResponse(content=return_data, status_code=200) 
     
 def cancel_job(job):
     try:
@@ -68,4 +69,4 @@ def cancel_job(job):
         raise HTTPException(status_code=500, detail=str(error))
     else:
         if return_data["status"] == "SUCCESS":
-            pass 
+            return JSONResponse(content=return_data, status_code=200) 
