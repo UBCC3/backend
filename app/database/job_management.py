@@ -131,7 +131,7 @@ def get_paginated_completed_jobs(
 
     return jobs
 
-
+#TODO: Log errors to an error file
 def post_new_job(
     email: str, job: CreateJobDTO, file: UploadFile = File(None)
 ) -> Union[JobModel, bool]:
@@ -157,6 +157,7 @@ def post_new_job(
                 parameters=job.parameters,
             )
             if not submit_job(job):
+                print("Submission to cluster failed")
                 return False
             session.add(job)
             session.commit()
