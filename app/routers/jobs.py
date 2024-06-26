@@ -31,6 +31,7 @@ from ..models import (
     UpdateJobDTO
 )
 from ..util import token_auth, download_from_s3, read_from_s3
+from ..cluster.cluster import cancel_job
 from typing import Union, Any
 from uuid import UUID
 
@@ -122,8 +123,16 @@ async def patch_job(job_id: UUID, job: UpdateJobDTO, token: str = Depends(token_
 @router.delete("/{job_id}", response_model=Union[bool, JwtErrorModel])
 async def delete_job(job_id: UUID, token: str = Depends(token_auth)):
 
-        return remove_job(job_id)
+    return remove_job(job_id)
 
+@router.delete("/cancel/{job_id}", response_model=Union[bool, JwtErrorModel])
+async def cancel_running_job(job_id: UUID, token: str = Depends(token_auth)):
+    cancel_job_data = "{'id':{job_id}}"
+    cancel_result = cancel_job(cancel_job_data)
+    if cancel_result:
+        return {"status":"200"}
+    else:
+        return {"status":"500"}
 
 # NOTE: disabled for now
 # @router.get("/download/{job_id}/{file_name}", response_model=Union[str, JwtErrorModel])
