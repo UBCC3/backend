@@ -40,6 +40,7 @@ class JobModel(BaseModel):
     started: Optional[datetime] = None
     finished: Optional[datetime] = None
     status: Optional[JobStatus] = JobStatus.SUBMITTED
+    error_message: Optional[str] = None
     parameters: Optional[Dict[str, Any]] = None
 
 
@@ -60,6 +61,7 @@ class UpdateJobDTO(BaseModel):
     started: Optional[datetime] = None
     finished: Optional[datetime] = None
     status: Optional[JobStatus] = JobStatus.SUBMITTED
+    error_message: Optional[str] = None
     parameters: Optional[Dict[str, Any]] = None
 
 
