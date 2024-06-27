@@ -59,7 +59,7 @@ async def upload_results(job_id):
         upload_result(job_id, "jobs")
     )
     if all(status == 204 for status in results):
-        return {"message": "All uploads successful with status 204"}
+        clean_results(job_id)   
     else:
         raise HTTPException(status_code=207, detail="One or more uploads did not complete successfully")
     
@@ -73,4 +73,8 @@ async def upload_result(job_id, path_name):
         return return_data["status_code"]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def clean_results(job_id):
+    parameters = {"JobID": job_id}
+    return_data = cluster_call("clean", parameters)
     
