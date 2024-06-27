@@ -1,6 +1,7 @@
 from typing import Dict
 from uuid import UUID
 
+import asyncio
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -26,7 +27,7 @@ def check_jobs_status():
                     finished=details['end_time']
                 ) 
                 update_job(job_id, update_data)
-                fetch_result(job_id)
+                upload_results(job_id)
             else:
                 error_message = f'state {details['state']} with exit code {details['exitcode']} and reason {details['reason']}'
                 update_data = UpdateJobDTO(
@@ -52,12 +53,24 @@ def process_running_jobs() -> Dict[UUID, int]:
 
     return jobs_dict
 
-def fetch_result(job_id):
-    object_name = f'/jobs/{job_id}/' # TODO: use the corerct path
+async def upload_results(job_id):
+    results = await asyncio.gather(
+        upload_result(job_id, "archive"),
+        upload_result(job_id, "jobs")
+    )
+    if all(status == 204 for status in results):
+        return {"message": "All uploads successful with status 204"}
+    else:
+        raise HTTPException(status_code=207, detail="One or more uploads did not complete successfully")
+    
+async def upload_result(job_id, path_name):
+    object_name = f'/{path_name}/{job_id}/' 
     response = create_presigned_post(object_name)
-    parameters = {"JobID": job_id, "PresignedResponse": response}
+    type_value = "zip" if path_name == "archive" else "json"
+    parameters = {"Type": type_value, "JobID": job_id, "PresignedResponse": response}
     try:
-        return_data = cluster_call("fetch", parameters)
-        #TODO: add following action
+        return_data = await cluster_call("upload", parameters)
+        return return_data["status_code"]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
