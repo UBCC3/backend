@@ -1,14 +1,14 @@
 import os
-import sys
-from fastapi import Depends, FastAPI
-from fastapi.logger import logger
-from pydantic_settings import BaseSettings
-from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+
+from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic_settings import BaseSettings
 
-from .routers import users, calculations, jobs, structures
-
-import psutil
+from .cluster.cluster import interaction_with_cluster
+from .routers import calculations, jobs, structures, users
 
 dotenv_path = os.getcwd()+"/.env"
 load_dotenv(dotenv_path)
@@ -18,11 +18,20 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    scheduler = BackgroundScheduler()
+    # TODO: Consider the need to dynamically adjust interval settings
+    scheduler.add_job(interaction_with_cluster, 'interval', hours=2)
+    scheduler.start()
+    yield
+    scheduler.shutdown()
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.environ.get("FE_URL")],  # Replace with the URL of frontend
+    allow_origins=[os.environ.get("FE_URL")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
