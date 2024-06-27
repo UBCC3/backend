@@ -14,23 +14,32 @@ def interaction_with_cluster():
     check_jobs_status()
 
 def check_jobs_status():
-    jobs_dict = get_all_running_jobs_as_dict()
+    jobs_dict = process_running_jobs()
     try:
         return_data = cluster_call("check", jobs_dict)
-        for key, value in return_data.items():
-            if value == 0:
+        for job_id, details in return_data.items():
+            if details == 0:
                 pass
-            elif value == 1:
-                fetch_result(key)
+            elif details['state'] == "COMPLETED":
+                update_data = UpdateJobDTO(
+                    started=details['start_time'], 
+                    finished=details['end_time']
+                ) 
+                update_job(job_id, update_data)
+                fetch_result(job_id)
             else:
-                error_message = value
-                update_data = UpdateJobDTO(status=JobStatus.FAILED, parameters={"error_message": error_message})
-                update_job(key, update_data)
+                error_message = f'state {details['state']} with exit code {details['exitcode']} and reason {details['reason']}'
+                update_data = UpdateJobDTO(
+                    status=JobStatus.FAILED, 
+                    started=details['start_time'], 
+                    finished=details['end_time'], 
+                    error_message=error_message
+                )
+                update_job(job_id, update_data)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-        
 
-def get_all_running_jobs_as_dict() -> Dict[UUID, int]:
+def process_running_jobs() -> Dict[UUID, int]:
     status_values = [JobStatus.RUNNING, JobStatus.SUBMITTED]
     jobs_dict = {}
 
@@ -49,5 +58,6 @@ def fetch_result(job_id):
     parameters = {"JobID": job_id, "PresignedResponse": response}
     try:
         return_data = cluster_call("fetch", parameters)
+        #TODO: add following action
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
