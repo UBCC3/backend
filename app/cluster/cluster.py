@@ -1,6 +1,7 @@
 from typing import Dict
 from uuid import UUID
 
+import asyncio
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -15,23 +16,32 @@ def interaction_with_cluster():
     check_jobs_status()
 
 def check_jobs_status():
-    jobs_dict = get_all_running_jobs_as_dict()
+    jobs_dict = process_running_jobs()
     try:
         return_data = cluster_call("check", jobs_dict)
-        for key, value in return_data.items():
-            if value == 0:
+        for job_id, details in return_data.items():
+            if details == 0:
                 pass
-            elif value == 1:
-                fetch_result(key)
+            elif details['state'] == "COMPLETED":
+                update_data = UpdateJobDTO(
+                    started=details['start_time'], 
+                    finished=details['end_time']
+                ) 
+                update_job(job_id, update_data)
+                upload_results(job_id)
             else:
-                error_message = value
-                update_data = UpdateJobDTO(status=JobStatus.FAILED, parameters={"error_message": error_message})
-                update_job(key, update_data)
+                error_message = f'state {details['state']} with exit code {details['exitcode']} and reason {details['reason']}'
+                update_data = UpdateJobDTO(
+                    status=JobStatus.FAILED, 
+                    started=details['start_time'], 
+                    finished=details['end_time'], 
+                    error_message=error_message
+                )
+                update_job(job_id, update_data)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-        
 
-def get_all_running_jobs_as_dict() -> Dict[UUID, int]:
+def process_running_jobs() -> Dict[UUID, int]:
     status_values = [JobStatus.RUNNING, JobStatus.SUBMITTED]
     jobs_dict = {}
 
@@ -44,12 +54,24 @@ def get_all_running_jobs_as_dict() -> Dict[UUID, int]:
 
     return jobs_dict
 
-def fetch_result(job_id):
-    object_name = f'/jobs/{job_id}/' # TODO: use the corerct path
+async def upload_results(job_id):
+    results = await asyncio.gather(
+        upload_result(job_id, "archive"),
+        upload_result(job_id, "jobs")
+    )
+    if all(status == 204 for status in results):
+        clean_results(job_id)   
+    else:
+        raise HTTPException(status_code=207, detail="One or more uploads did not complete successfully")
+    
+async def upload_result(job_id, path_name):
+    object_name = f'/{path_name}/{job_id}/' 
     response = create_presigned_post(object_name)
-    parameters = {"JobID": job_id, "PresignedResponse": response}
+    type_value = "zip" if path_name == "archive" else "json"
+    parameters = {"Type": type_value, "JobID": job_id, "PresignedResponse": response}
     try:
-        return_data = cluster_call("fetch", parameters)
+        return_data = await cluster_call("upload", parameters)
+        return return_data["status_code"]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -75,3 +97,7 @@ def cancel_job(job):
             return True
             # return JSONResponse(content=return_data, status_code=200)
         return False
+def clean_results(job_id):
+    parameters = {"JobID": job_id}
+    return_data = cluster_call("clean", parameters)
+    
