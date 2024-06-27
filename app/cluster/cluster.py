@@ -2,7 +2,8 @@ from typing import Dict
 from uuid import UUID
 
 import asyncio
-from fastapi import HTTPException
+from fastapi import HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from ..database.db_engine import db_engine
@@ -74,6 +75,28 @@ async def upload_result(job_id, path_name):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+def submit_job(job):
+    try:
+        return_data = cluster_call("submit", job.parameters)
+    except Exception as error:
+        return False
+        # raise HTTPException(status_code=500, detail=str(error))
+    else:
+        if return_data["status"] == "SUCCESS":
+            return True
+            # return JSONResponse(content=return_data, status_code=200) 
+        return False
+def cancel_job(job):
+    try:
+        return_data = cluster_call("cancel",job)
+    except Exception as error:
+        return False
+        # raise HTTPException(status_code=500, detail=str(error))
+    else:
+        if return_data["status"] == "SUCCESS":
+            return True
+            # return JSONResponse(content=return_data, status_code=200)
+        return False
 def clean_results(job_id):
     parameters = {"JobID": job_id}
     return_data = cluster_call("clean", parameters)

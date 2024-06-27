@@ -8,10 +8,9 @@ from typing import List, Union
 
 
 from typing import List
-import sys
-import subprocess
 import uuid
 from ..models import JobModel, JobStatus, CreateJobDTO, UpdateJobDTO, StructureOrigin
+from ..cluster.cluster import (submit_job)
 from fastapi import File, UploadFile
 
 from ..util import upload_to_s3, item_to_dict
@@ -132,7 +131,7 @@ def get_paginated_completed_jobs(
 
     return jobs
 
-
+#TODO: Log errors to an error file
 def post_new_job(
     email: str, job: CreateJobDTO, file: UploadFile = File(None)
 ) -> Union[JobModel, bool]:
@@ -157,7 +156,9 @@ def post_new_job(
                 submitted= func.now(),
                 parameters=job.parameters,
             )
-
+            if not submit_job(job):
+                print("Submission to cluster failed")
+                return False
             session.add(job)
             session.commit()
             # if source is upload, create new row in structure table
@@ -178,18 +179,11 @@ def post_new_job(
                 session.commit()
 
             session.refresh(job)
-            # TODO: change for deployment
-            script_location = "cluster-api/submit_job.py"
-            cluster_command = [
-                "ssh","cluster","python3", script_location, job.parameters
-            ]
-            print("Parameters: ",job.parameters, "\n")
             return item_to_dict(job)
         except SQLAlchemyError as e:
             session.rollback()
             print(f"Error: {str(e)}")
             return False
-
 
 def update_job(job_id: uuid.UUID, update_job_dto: UpdateJobDTO) -> bool:
     """Updates a job
