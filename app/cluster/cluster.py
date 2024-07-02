@@ -77,7 +77,7 @@ async def upload_result(job_id, path_name):
 
 def submit_job(job):
     try:
-        return_data = cluster_call("submit", job.parameters)
+        return_data = cluster_call("submit", job)
     except Exception as error:
         return False
         # raise HTTPException(status_code=500, detail=str(error))
