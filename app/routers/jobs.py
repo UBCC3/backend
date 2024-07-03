@@ -22,6 +22,7 @@ from ..database.job_management import (
 from ..database.structure_management import get_structure_by_job_id
 
 import json
+import uuid
 
 from ..models import (
     JobModel,
@@ -31,7 +32,7 @@ from ..models import (
     UpdateJobDTO
 )
 from ..util import token_auth, download_from_s3, read_from_s3
-from ..cluster.cluster import cancel_job
+from ..cluster.cluster import cancel_job, submit_job
 from typing import Union, Any
 from uuid import UUID
 
@@ -106,8 +107,12 @@ async def create_new_job(
     token: str = Depends(token_auth),
 ):
     job = CreateJobDTO(job_name=job_name, parameters=json.loads(parameters))
-
-    return post_new_job(email, job, file)
+    db_job_id = uuid.uuid4()
+    job.parameters["id"] = str(db_job_id)
+    if submit_job(job):
+        return post_new_job(email, job, db_job_id,file)
+    else:
+        return {"status":"500"}
 
 
 @router.patch("/{job_id}", response_model=Union[bool, JwtErrorModel])
