@@ -10,7 +10,6 @@ from typing import List, Union
 from typing import List
 import uuid
 from ..models import JobModel, JobStatus, CreateJobDTO, UpdateJobDTO, StructureOrigin
-from ..cluster.cluster import (submit_job)
 from fastapi import File, UploadFile
 
 from ..util import upload_to_s3, item_to_dict
@@ -156,9 +155,6 @@ def post_new_job(
                 submitted= func.now(),
                 parameters=job.parameters,
             )
-            if not submit_job(job):
-                print("Submission to cluster failed")
-                return False
             session.add(job)
             session.commit()
             # if source is upload, create new row in structure table

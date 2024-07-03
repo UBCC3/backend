@@ -127,7 +127,7 @@ async def delete_job(job_id: UUID, token: str = Depends(token_auth)):
 
 @router.delete("/cancel/{job_id}", response_model=Union[bool, JwtErrorModel])
 async def cancel_running_job(job_id: UUID, token: str = Depends(token_auth)):
-    cancel_job_data = "{'id':{job_id}}"
+    cancel_job_data = {"id":job_id}
     cancel_result = cancel_job(cancel_job_data)
     if cancel_result:
         return {"status":"200"}
