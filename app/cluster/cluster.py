@@ -17,8 +17,9 @@ def interaction_with_cluster():
 
 def check_jobs_status():
     jobs_dict = process_running_jobs()
+    parameters = {"jobs_dict": jobs_dict}
     try:
-        return_data = cluster_call("check", jobs_dict)
+        return_data = cluster_call("check", parameters)
         for job_id, details in return_data.items():
             if details == 0:
                 pass
@@ -50,7 +51,7 @@ def process_running_jobs() -> Dict[UUID, int]:
             Job.status.in_(status_values)
         )
         for job in jobs:
-            jobs_dict[job.id] = 0
+            jobs_dict[job.id] = job.status
 
     return jobs_dict
 
