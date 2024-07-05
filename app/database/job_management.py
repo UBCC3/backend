@@ -8,9 +8,7 @@ from typing import List, Union
 
 
 from typing import List
-import uuid
 from ..models import JobModel, JobStatus, CreateJobDTO, UpdateJobDTO, StructureOrigin
-from ..cluster.cluster import (submit_job)
 from fastapi import File, UploadFile
 
 from ..util import upload_to_s3, item_to_dict
@@ -133,7 +131,7 @@ def get_paginated_completed_jobs(
 
 #TODO: Log errors to an error file
 def post_new_job(
-    email: str, job: CreateJobDTO, file: UploadFile = File(None)
+    email: str, job: CreateJobDTO, db_job_id ,file: UploadFile = File(None)
 ) -> Union[JobModel, bool]:
     """Create new job entry
 
@@ -150,21 +148,18 @@ def post_new_job(
             # create new row in job table
             # TODO: ensure auth0 makes the email accessible.
             job = Job(
-                id=uuid.uuid4(),
+                id=db_job_id,
                 userid=email,
                 job_name=job.job_name,
                 submitted= func.now(),
                 parameters=job.parameters,
             )
-            if not submit_job(job):
-                print("Submission to cluster failed")
-                return False
             session.add(job)
             session.commit()
             # if source is upload, create new row in structure table
             if job.parameters["source"] == StructureOrigin.UPLOADED:
                 structure = Structure(
-                    id=uuid.uuid4(),
+                    id=db_job_id,
                     jobid=job.id,
                     userid=email,
                     name=job.job_name,
