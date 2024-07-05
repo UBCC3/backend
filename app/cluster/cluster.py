@@ -30,7 +30,7 @@ def check_jobs_status():
                     error_message = details["error_message"] if "error_message" in details else None,
                 )
                 update_job(job_id, update_data)
-                if details["status"] == "COMPLETED" or "FAILED":
+                if details["status"] == "COMPLETED" or "FAILED" or "CANCELLED":
                     upload_results(job_id)            
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
