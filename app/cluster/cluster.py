@@ -59,10 +59,10 @@ async def upload_results(job_id):
         raise HTTPException(status_code=207, detail="One or more uploads did not complete successfully")
     
 async def upload_result(job_id, path_name):
-    object_name = f'/{path_name}/{job_id}/' 
-    response = create_presigned_post(object_name)
     type_value = "zip" if path_name == "archive" else "json"
-    parameters = {"Type": type_value, "JobID": job_id, "PresignedResponse": response}
+    object_name = f'/{path_name}/{job_id}.{type_value}/' 
+    response = create_presigned_post(object_name)
+    parameters = {"type": type_value, "id": job_id, "PresignedResponse": response}
     try:
         return_data = await cluster_call("upload", parameters)
         return return_data["status_code"]
