@@ -6,13 +6,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import desc, func
 from typing import List, Union
 
-
-from typing import List
 from ..models import JobModel, JobStatus, CreateJobDTO, UpdateJobDTO, StructureOrigin
 from fastapi import File, UploadFile
 
 from ..util import upload_to_s3, item_to_dict
 
+from uuid import UUID
 
 def get_all_jobs() -> List[JobModel]:
     """Gets all jobs
@@ -131,7 +130,7 @@ def get_paginated_completed_jobs(
 
 #TODO: Log errors to an error file
 def post_new_job(
-    email: str, job: CreateJobDTO, db_job_id ,file: UploadFile = File(None)
+    email: str, job: CreateJobDTO, db_job_id: UUID,file: UploadFile = File(None)
 ) -> Union[JobModel, bool]:
     """Create new job entry
 
@@ -180,7 +179,7 @@ def post_new_job(
             print(f"Error: {str(e)}")
             return False
 
-def update_job(job_id: uuid.UUID, update_job_dto: UpdateJobDTO) -> bool:
+def update_job(job_id: UUID, update_job_dto: UpdateJobDTO) -> bool:
     """Updates a job
 
     Args:
@@ -210,7 +209,7 @@ def update_job(job_id: uuid.UUID, update_job_dto: UpdateJobDTO) -> bool:
             return False
 
 
-def remove_job(job_id: uuid.UUID) -> bool:
+def remove_job(job_id: UUID) -> bool:
     """Removes a Job from the Job Table
 
     Args:

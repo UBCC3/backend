@@ -30,7 +30,7 @@ def check_jobs_status():
                     error_message = details["error_message"] if "error_message" in details else None,
                 )
                 update_job(job_id, update_data)
-                if details["status"] == "COMPLETED" or "FAILED":
+                if details["status"] == "COMPLETED" or "FAILED" or "CANCELLED":
                     upload_results(job_id)            
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -59,10 +59,10 @@ async def upload_results(job_id):
         raise HTTPException(status_code=207, detail="One or more uploads did not complete successfully")
     
 async def upload_result(job_id, path_name):
-    object_name = f'/{path_name}/{job_id}/' 
-    response = create_presigned_post(object_name)
     type_value = "zip" if path_name == "archive" else "json"
-    parameters = {"Type": type_value, "JobID": job_id, "PresignedResponse": response}
+    object_name = f'/{path_name}/{job_id}.{type_value}/' 
+    response = create_presigned_post(object_name)
+    parameters = {"type": type_value, "id": job_id, "PresignedResponse": response}
     try:
         return_data = await cluster_call("upload", parameters)
         return return_data["status_code"]
@@ -91,7 +91,12 @@ def cancel_job(job):
             return True
             # return JSONResponse(content=return_data, status_code=200)
         return False
+    
 def clean_results(job_id):
-    parameters = {"JobID": job_id}
+    parameters = {"id": job_id}
     return_data = cluster_call("clean", parameters)
+    if return_data["status"] == "SUCCESS":
+        return True
+    else:
+        return False
     
