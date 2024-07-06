@@ -91,7 +91,12 @@ def cancel_job(job):
             return True
             # return JSONResponse(content=return_data, status_code=200)
         return False
+    
 def clean_results(job_id):
-    parameters = {"JobID": job_id}
+    parameters = {"id": job_id}
     return_data = cluster_call("clean", parameters)
+    if return_data["status"] == "SUCCESS":
+        return True
+    else:
+        return False
     
