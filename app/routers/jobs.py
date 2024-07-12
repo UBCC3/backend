@@ -31,7 +31,7 @@ from ..models import (
     CreateJobDTO,
     UpdateJobDTO
 )
-from ..util import token_auth, download_from_s3, read_from_s3
+from ..util import token_auth, download_from_s3, read_from_s3, convert_file_to_xyz
 from ..cluster.cluster import cancel_job, submit_job
 from typing import Union, Any
 from uuid import UUID
@@ -106,13 +106,22 @@ async def create_new_job(
     file: UploadFile = File(None),
     token: str = Depends(token_auth),
 ):
-    job = CreateJobDTO(job_name=job_name, parameters=json.loads(parameters))
-    db_job_id = uuid.uuid4()
-    job.parameters["id"] = str(db_job_id)
-    if submit_job(job):
-        return post_new_job(email, job, db_job_id,file)
+    try:
+        struct_file_path = f"temp_{file.filename}"
+        with open(struct_file_path, 'wb') as f:
+            f.write(file.file.read())
+        job_structure = convert_file_to_xyz(struct_file_path)
+        parameters["job_structure"] = job_structure
+    except Exception:
+        return {"status": "400"}
     else:
-        return {"status":"500"}
+        job = CreateJobDTO(job_name=job_name, parameters=json.loads(parameters))
+        db_job_id = uuid.uuid4()
+        job.parameters["id"] = str(db_job_id)
+        if submit_job(job):
+            return post_new_job(email, job, db_job_id,file)
+        else:
+            return {"status":"500"}
 
 
 @router.patch("/{job_id}", response_model=Union[bool, JwtErrorModel])

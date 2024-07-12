@@ -2,15 +2,20 @@ import json
 import logging
 import os
 import subprocess
+import jwt
+import boto3
+
 from uuid import UUID
 
-import boto3
+
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from fastapi import Depends, status, HTTPException, File
 from fastapi.security import HTTPBearer
-import jwt
+
+from openbabel import openbabel
+
 
 dotenv_path = os.getcwd()+"/.env"
 load_dotenv(dotenv_path)
@@ -114,6 +119,15 @@ class VerifyToken:
                 )
                 return result
         return result
+
+def convert_file_to_xyz(input_file_path) -> str:
+    obc = openbabel.OBConversion()
+    obc.SetOutFormat("xyz")
+
+    structure = openbabel.OBMol()
+    obc.ReadFile(structure, input_file_path)
+
+    return obc.WriteString(structure)
 
 # TODO: use openbabel to convert file type for consistency *.xyz
 def upload_to_s3(file: File, structure_id: UUID):
