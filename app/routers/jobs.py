@@ -107,11 +107,7 @@ async def create_new_job(
     token: str = Depends(token_auth),
 ):
     try:
-        struct_file_path = f"temp_{file.filename}"
-        with open(struct_file_path, 'wb') as f:
-            f.write(file.file.read())
-        job_structure = convert_file_to_xyz(struct_file_path)
-        parameters["job_structure"] = job_structure
+        parameters["job_structure"] = file.file.read()
     except Exception:
         return {"status": "400"}
     else:
