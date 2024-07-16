@@ -2,6 +2,7 @@ from typing import Dict
 from uuid import UUID
 
 import asyncio
+from datetime import datetime
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -17,27 +18,20 @@ def interaction_with_cluster():
 
 def check_jobs_status():
     jobs_dict = process_running_jobs()
+    parameters = {"jobs_dict": jobs_dict}
     try:
-        return_data = cluster_call("check", jobs_dict)
+        return_data = cluster_call("check", parameters)
         for job_id, details in return_data.items():
-            if details == 0:
-                pass
-            elif details['state'] == "COMPLETED":
+            if details != 0:
                 update_data = UpdateJobDTO(
-                    started=details['start_time'], 
-                    finished=details['end_time']
-                ) 
-                update_job(job_id, update_data)
-                upload_results(job_id)
-            else:
-                error_message = f'state {details['state']} with exit code {details['exitcode']} and reason {details['reason']}'
-                update_data = UpdateJobDTO(
-                    status=JobStatus.FAILED, 
-                    started=details['start_time'], 
-                    finished=details['end_time'], 
-                    error_message=error_message
+                    status = JobStatus[details["status"]] if "status" in details else None,
+                    started = datetime.fromisoformat(details["started"]) if "started" in details else None,
+                    finished = datetime.fromisoformat(details["finished"]) if "finished" in details else None,
+                    error_message = details["error_message"] if "error_message" in details else None,
                 )
                 update_job(job_id, update_data)
+                if details["status"] == "COMPLETED" or "FAILED" or "CANCELLED":
+                    upload_results(job_id)            
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -50,7 +44,7 @@ def process_running_jobs() -> Dict[UUID, int]:
             Job.status.in_(status_values)
         )
         for job in jobs:
-            jobs_dict[job.id] = 0
+            jobs_dict[job.id] = job.status
 
     return jobs_dict
 
@@ -65,10 +59,10 @@ async def upload_results(job_id):
         raise HTTPException(status_code=207, detail="One or more uploads did not complete successfully")
     
 async def upload_result(job_id, path_name):
-    object_name = f'/{path_name}/{job_id}/' 
-    response = create_presigned_post(object_name)
     type_value = "zip" if path_name == "archive" else "json"
-    parameters = {"Type": type_value, "JobID": job_id, "PresignedResponse": response}
+    object_name = f'/{path_name}/{job_id}.{type_value}/' 
+    response = create_presigned_post(object_name)
+    parameters = {"type": type_value, "id": job_id, "PresignedResponse": response}
     try:
         return_data = await cluster_call("upload", parameters)
         return return_data["status_code"]
@@ -97,7 +91,12 @@ def cancel_job(job):
             return True
             # return JSONResponse(content=return_data, status_code=200)
         return False
+    
 def clean_results(job_id):
-    parameters = {"JobID": job_id}
+    parameters = {"id": job_id}
     return_data = cluster_call("clean", parameters)
+    if return_data["status"] == "SUCCESS":
+        return True
+    else:
+        return False
     
