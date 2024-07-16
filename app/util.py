@@ -120,12 +120,23 @@ class VerifyToken:
                 return result
         return result
 
-def convert_file_to_xyz(input_file_path) -> str:
+def convert_file_to_xyz(input_file_string) -> str:
     obc = openbabel.OBConversion()
-    obc.SetOutFormat("xyz")
+    input_format = input_file_string[-4:-1]
+    match input_format:
+        case "pdb":
+            obc.SetInOutFormat("pdb","xyz")
+        case "cif":
+            obc.SetInOutFormat("cif","xyz")
+        case "mol":
+            obc.SetInOutFormat("mol","xyz")
+        case "xyz":
+            return input_file_string
+        case _:
+            raise Exception
 
     structure = openbabel.OBMol()
-    obc.ReadFile(structure, input_file_path)
+    obc.ReadString(structure, input_file_string)
 
     return obc.WriteString(structure)
 

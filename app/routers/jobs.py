@@ -107,7 +107,8 @@ async def create_new_job(
     token: str = Depends(token_auth),
 ):
     try:
-        parameters["job_structure"] = file.file.read()
+        input_file_string = file.file.read()
+        parameters["job_structure"] = convert_file_to_xyz(input_file_string)
     except Exception:
         return {"status": "400"}
     else:
