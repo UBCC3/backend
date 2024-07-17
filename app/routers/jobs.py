@@ -127,12 +127,18 @@ async def create_new_job(
 
 @router.patch("/{job_id}", response_model=Union[bool, JwtErrorModel])
 async def patch_job(job_id: UUID, job: UpdateJobDTO, token: str = Depends(token_auth)):
-    res = update_job(job_id, job)
-
-    if not res:
-        raise HTTPException(status_code=404, detail="Job not found")
-    else:
+    cancel_job_data = {"id":str(job_id)}
+    cancel_result = cancel_job(cancel_job_data)
+    if cancel_result:
+        res = update_job(job_id, job)
+        if not res:
+            raise HTTPException(status_code=404, detail="Job not found")
+        else:
+            return True
         return True
+    else:
+        raise HTTPException(status_code=400, detail="Job not cancelled")
+
 
 
 @router.delete("/{job_id}", response_model=Union[bool, JwtErrorModel])
@@ -140,10 +146,9 @@ async def delete_job(job_id: UUID, token: str = Depends(token_auth)):
 
     return remove_job(job_id)
 
-@router.delete("/cancel/{job_id}", response_model=Union[bool, JwtErrorModel])
+@router.patch("/cancel/{job_id}", response_model=Union[bool, JwtErrorModel])
 async def cancel_running_job(job_id: UUID):
     cancel_job_data = {"id":str(job_id)}
-    print(cancel_job_data)
     cancel_result = cancel_job(cancel_job_data)
     if cancel_result:
         return True
