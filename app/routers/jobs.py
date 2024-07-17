@@ -119,13 +119,9 @@ async def create_new_job(
     except Exception as e:
         raise HTTPException(status_code=400, detail="Job was not submitted")
     else:
-        try: 
-            if submit_job(job):
-                return post_new_job(email, job, db_job_id,file)
-            else:
-                raise HTTPException(status_code=500, detail="Job failed on the cluster")
-        except Exception as e:
-            print(e)
+        if submit_job(job):
+            return post_new_job(email, job, db_job_id,file)
+        else:
             raise HTTPException(status_code=500, detail="Job failed on the cluster")
 
 

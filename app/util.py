@@ -122,7 +122,7 @@ class VerifyToken:
 
 def convert_file_to_xyz(input_file_string) -> str:
     obc = openbabel.OBConversion()
-    obc.SetOutFormat("xyz")
+    obc.SetInAndOutFormats("pdb","xyz")
     structure = openbabel.OBMol()
     try:
         obc.ReadString(structure, """HEADER    SMALL MOLECULE
@@ -235,8 +235,8 @@ def cluster_call(action: str, parameters: dict):
     }
     json_data = json.dumps(command_data)
     main_exec_path = os.environ.get("CLUSTER_LOC")
-    ssh_command = ["ssh", "cluster", "python3", main_exec_path]
-
+    # ssh_command = ["ssh", "cluster", "python3", main_exec_path]
+    ssh_command = ["python3", main_exec_path]
     try:
         process = subprocess.Popen(
             ssh_command,
@@ -248,6 +248,7 @@ def cluster_call(action: str, parameters: dict):
         stdout, stderr = process.communicate(input=json_data)
         if process.returncode != 0:
             raise HTTPException(status_code=500, detail=stderr)
+        print(stdout)
         return json.loads(stdout)
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=str(e))
