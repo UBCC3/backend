@@ -248,7 +248,6 @@ def cluster_call(action: str, parameters: dict):
         stdout, stderr = process.communicate(input=json_data)
         if process.returncode != 0:
             raise HTTPException(status_code=500, detail=stderr)
-        print(stdout)
         return json.loads(stdout)
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=str(e))

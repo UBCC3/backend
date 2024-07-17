@@ -82,7 +82,7 @@ def submit_job(job):
         return HTTPException(status_code=500, detail= "Job submission failed on cluster")
 def cancel_job(job):
     try:
-        return_data = cluster_call("cancel",job.parameters)
+        return_data = cluster_call("cancel",job)
     except Exception as error:
         return False
         # raise HTTPException(status_code=500, detail=str(error))

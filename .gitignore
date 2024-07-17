@@ -13,3 +13,4 @@
 **/env
 .env
 **/__pycache__/
+error_log.txt
