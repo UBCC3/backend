@@ -61,7 +61,7 @@ async def get_jobs(response: Response, token: str = Depends(token_auth)):
 
 @router.get("/in-progress", response_model=Union[list[JobModel], JwtErrorModel])
 async def get_in_progress_jobs(
-    email: str, response: Response
+    email: str, response: Response, token: str = Depends(token_auth)
 ):
     jobs = get_all_running_jobs(email)
 
@@ -90,6 +90,7 @@ async def get_paginated_complete_jobs(
     filter: str,
     limit: int = 5,
     offset: int = 0,
+    token: str = Depends(token_auth)
 ):
     total_count = get_completed_jobs_count(email, filter)
     data = get_paginated_completed_jobs(email, limit, offset, filter)
@@ -108,6 +109,7 @@ async def create_new_job(
     job_name: str = Form(...),
     parameters: str = Form(...),
     file: UploadFile = File(None),
+    token: str = Depends(token_auth)
 
 ):
     job = CreateJobDTO(job_name=job_name, parameters=json.loads(parameters))
@@ -147,7 +149,7 @@ async def delete_job(job_id: UUID, token: str = Depends(token_auth)):
     return remove_job(job_id)
 
 @router.patch("/cancel/{job_id}", response_model=Union[bool, JwtErrorModel])
-async def cancel_running_job(job_id: UUID):
+async def cancel_running_job(job_id: UUID, token: str = Depends(token_auth)):
     cancel_job_data = {"id":str(job_id)}
     cancel_result = cancel_job(cancel_job_data)
     if cancel_result:
