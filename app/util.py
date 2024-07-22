@@ -125,21 +125,21 @@ def convert_file_to_xyz(input_file_string) -> str:
     obc.SetInAndOutFormats("pdb","xyz")
     structure = openbabel.OBMol()
     try:
-        obc.ReadString(structure, """HEADER    SMALL MOLECULE
-ATOM      1  C1  ETN     1       0.000   0.000   0.000  1.00  0.00           C
-ATOM      2  C2  ETN     1       1.540   0.000   0.000  1.00  0.00           C
-ATOM      3  O   ETN     1       2.040   1.260   0.000  1.00  0.00           O
-ATOM      4  H1  ETN     1      -0.540   0.900   0.000  1.00  0.00           H
-ATOM      5  H2  ETN     1      -0.540  -0.900   0.000  1.00  0.00           H
-ATOM      6  H3  ETN     1       2.540  -0.900   0.000  1.00  0.00           H
-ATOM      7  H4  ETN     1       1.540   0.540   0.900  1.00  0.00           H
-ATOM      8  H5  ETN     1       1.540   0.540  -0.900  1.00  0.00           H
-ATOM      9  H6  ETN     1       2.040   1.800  -0.900  1.00  0.00           H
-TER
-END
-""")
+#         obc.ReadString(structure, """HEADER    SMALL MOLECULE
+# ATOM      1  C1  ETN     1       0.000   0.000   0.000  1.00  0.00           C
+# ATOM      2  C2  ETN     1       1.540   0.000   0.000  1.00  0.00           C
+# ATOM      3  O   ETN     1       2.040   1.260   0.000  1.00  0.00           O
+# ATOM      4  H1  ETN     1      -0.540   0.900   0.000  1.00  0.00           H
+# ATOM      5  H2  ETN     1      -0.540  -0.900   0.000  1.00  0.00           H
+# ATOM      6  H3  ETN     1       2.540  -0.900   0.000  1.00  0.00           H
+# ATOM      7  H4  ETN     1       1.540   0.540   0.900  1.00  0.00           H
+# ATOM      8  H5  ETN     1       1.540   0.540  -0.900  1.00  0.00           H
+# ATOM      9  H6  ETN     1       2.040   1.800  -0.900  1.00  0.00           H
+# TER
+# END
+# """)
         # TODO: Fix issue with newlines
-        # obc.ReadString(structure, input_file_string)
+        obc.ReadString(structure, input_file_string)
     except Exception as e:
         print(e)
     try:
