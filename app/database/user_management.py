@@ -1,17 +1,12 @@
-from .db_engine import db_engine
+from datetime import datetime
+from typing import List
 
-from .db_tables import User
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-
+from .db_engine import db_engine
+from .db_tables import User
 from ..models import UserModel
-from typing import List
-
-import os
-from os.path import join, dirname
-from dotenv import load_dotenv
-from pathlib import Path
 
 
 def check_user_exists(email: str) -> bool:
@@ -37,9 +32,10 @@ def add_new_user(email: str) -> bool:
     Returns:
         bool: Returns True if success or False if fail
     """
+    lastlogin = datetime.now()
     with Session(db_engine.engine) as session:
         try:
-            user = User(email=email, active=True, admin=False)
+            user = User(email=email, lastlogin=lastlogin, active=True, admin=False)
             session.add(user)
             session.commit()
 
