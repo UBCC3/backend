@@ -117,6 +117,7 @@ async def create_new_job(
     job.parameters["id"] = str(db_job_id)
     try:
         input_file_string = file.file.read()
+        input_file_string.replace("\n", "")
         job.parameters["job_structure"] = convert_file_to_xyz(input_file_string)
     except Exception as e:
         raise HTTPException(status_code=400, detail="Job was not submitted")

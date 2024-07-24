@@ -30,7 +30,6 @@ def set_up():
         "ISSUER": os.environ.get("AUTH0_ISSUER"),
         "ALGORITHMS": os.environ.get("AUTH0_ALGO"),
     }
-
     return config
 
 
@@ -61,11 +60,12 @@ class VerifyToken:
     def verify(self):
         # This gets the 'kid' from the passed token
         try:
+            print(self.jwks_client.get_signing_key_from_jwt(self.token))
             self.signing_key = self.jwks_client.get_signing_key_from_jwt(self.token).key
         except jwt.exceptions.PyJWKClientError as error:
-            return {"status": "error", "msg": error.__str__()}
+            return {"status": "error", "msg": f"PyJWKClientError: {str(error)}"}
         except jwt.exceptions.DecodeError as error:
-            return {"status": "error", "msg": error.__str__()}
+            return {"status": "error", "msg": f"DecodeError: {str(error)}"}
 
         try:
             payload = jwt.decode(

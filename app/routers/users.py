@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, FastAPI, Response, status, Body, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, Response, status, Body, HTTPException, Request
 from fastapi.security import HTTPBearer
 from ..database.user_management import (
     check_user_exists,
@@ -10,7 +10,9 @@ from ..database.user_management import (
 from ..models import UserModel, JwtErrorModel
 from ..util import VerifyToken, token_auth
 from typing import Union
-
+import json
+import logging
+logging.basicConfig(level=logging.DEBUG)
 router = APIRouter(
     prefix="/users",
     tags=["users"],
@@ -21,13 +23,13 @@ token_auth_schema = HTTPBearer()
 
 
 @router.get("/", response_model=Union[list[UserModel], JwtErrorModel])
-async def get_users(response: Response, token: str = Depends(token_auth)):
+async def get_users(response: Response, request: Request , token: str = Depends(token_auth)):
     return get_all_users()
 
 
 @router.get("/user-exists", response_model=Union[bool, JwtErrorModel])
 async def get_user_exists(
-    email: str, response: Response, token: str = Depends(token_auth)
+    email: str, request: Request, response: Response, token: str = Depends(token_auth)
 ):
     return check_user_exists(email)
 
