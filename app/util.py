@@ -235,8 +235,8 @@ def cluster_call(action: str, parameters: dict):
     }
     json_data = json.dumps(command_data)
     main_exec_path = os.environ.get("CLUSTER_LOC")
-    # ssh_command = ["ssh", "cluster", "python3", main_exec_path]
-    ssh_command = ["python3", main_exec_path]
+    ssh_command = ["ssh", "cluster", "python3", main_exec_path]
+    # ssh_command = ["python3", main_exec_path]
     try:
         process = subprocess.Popen(
             ssh_command,
