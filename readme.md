@@ -1,5 +1,7 @@
 Set host and username for database inside db_engine.py
 
+Make sure openbabel binaries are installed on the machine running the server.
+
 Create virtual environment:
 `python3 -m venv env`
 

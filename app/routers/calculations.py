@@ -22,13 +22,13 @@ router = APIRouter(
 
 token_auth_schema = HTTPBearer()
 
-
+# TODO: Add authentication back in
 @router.get(
     "/get-available-calculations",
     response_model=Union[list[CalculationOptionModel], JwtErrorModel],
 )
 async def get_available_calculations(
-    response: Response, token: str = Depends(token_auth)
+    response: Response
 ):
     return get_all_available_calculations()
 
@@ -38,7 +38,7 @@ async def get_available_calculations(
     response_model=Union[list[CalculationOptionModel], JwtErrorModel],
 )
 async def get_available_basis_sets(
-    response: Response, token: str = Depends(token_auth)
+    response: Response
 ):
     return get_all_available_basis_sets()
 
@@ -47,12 +47,12 @@ async def get_available_basis_sets(
     "/get-available-methods",
     response_model=Union[list[CalculationOptionModel], JwtErrorModel],
 )
-async def get_available_methods(response: Response, token: str = Depends(token_auth)):
+async def get_available_methods(response: Response):
     return get_all_available_methods()
 
 @router.get(
     "/get-solvent-effects",
     response_model=Union[list[CalculationOptionModel], JwtErrorModel],
 )
-async def get_solvent_effects(response: Response, token: str = Depends(token_auth)):
+async def get_solvent_effects(response: Response):
     return get_all_available_solvent_effects()

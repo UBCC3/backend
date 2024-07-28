@@ -31,10 +31,12 @@ from ..models import (
     CreateJobDTO,
     UpdateJobDTO
 )
-from ..util import token_auth, download_from_s3, read_from_s3
+from ..util import token_auth, download_from_s3, read_from_s3, convert_file_to_xyz
 from ..cluster.cluster import cancel_job, submit_job
 from typing import Union, Any
 from uuid import UUID
+import logging
+import sys
 
 router = APIRouter(
     prefix="/jobs",
@@ -44,7 +46,10 @@ router = APIRouter(
 
 token_auth_schema = HTTPBearer()
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
+# TODO: Add authentication back in
 @router.get("/", response_model=Union[list[JobModel], JwtErrorModel])
 async def get_jobs(response: Response, token: str = Depends(token_auth)):
     jobs = get_all_jobs()
@@ -85,7 +90,7 @@ async def get_paginated_complete_jobs(
     filter: str,
     limit: int = 5,
     offset: int = 0,
-    token: str = Depends(token_auth),
+    token: str = Depends(token_auth)
 ):
     total_count = get_completed_jobs_count(email, filter)
     data = get_paginated_completed_jobs(email, limit, offset, filter)
@@ -104,25 +109,39 @@ async def create_new_job(
     job_name: str = Form(...),
     parameters: str = Form(...),
     file: UploadFile = File(None),
-    token: str = Depends(token_auth),
+    token: str = Depends(token_auth)
+
 ):
     job = CreateJobDTO(job_name=job_name, parameters=json.loads(parameters))
     db_job_id = uuid.uuid4()
     job.parameters["id"] = str(db_job_id)
-    if submit_job(job):
-        return post_new_job(email, job, db_job_id,file)
+    try:
+        input_file_string = file.file.read()
+        input_file_string.replace("\n", "")
+        job.parameters["job_structure"] = convert_file_to_xyz(input_file_string)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Job was not submitted")
     else:
-        return {"status":"500"}
+        if submit_job(job):
+            return post_new_job(email, job, db_job_id,file)
+        else:
+            raise HTTPException(status_code=500, detail="Job failed on the cluster")
 
 
 @router.patch("/{job_id}", response_model=Union[bool, JwtErrorModel])
 async def patch_job(job_id: UUID, job: UpdateJobDTO, token: str = Depends(token_auth)):
-    res = update_job(job_id, job)
-
-    if not res:
-        raise HTTPException(status_code=404, detail="Job not found")
-    else:
+    cancel_job_data = {"id":str(job_id)}
+    cancel_result = cancel_job(cancel_job_data)
+    if cancel_result:
+        res = update_job(job_id, job)
+        if not res:
+            raise HTTPException(status_code=404, detail="Job not found")
+        else:
+            return True
         return True
+    else:
+        raise HTTPException(status_code=400, detail="Job not cancelled")
+
 
 
 @router.delete("/{job_id}", response_model=Union[bool, JwtErrorModel])
@@ -130,14 +149,14 @@ async def delete_job(job_id: UUID, token: str = Depends(token_auth)):
 
     return remove_job(job_id)
 
-@router.delete("/cancel/{job_id}", response_model=Union[bool, JwtErrorModel])
+@router.patch("/cancel/{job_id}", response_model=Union[bool, JwtErrorModel])
 async def cancel_running_job(job_id: UUID, token: str = Depends(token_auth)):
-    cancel_job_data = {"id":job_id}
+    cancel_job_data = {"id":str(job_id)}
     cancel_result = cancel_job(cancel_job_data)
     if cancel_result:
-        return {"status":"200"}
+        return True
     else:
-        return {"status":"500"}
+        raise HTTPException(status_code=404, detail="Job not cancelled")
 
 # NOTE: disabled for now
 # @router.get("/download/{job_id}/{file_name}", response_model=Union[str, JwtErrorModel])

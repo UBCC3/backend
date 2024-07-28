@@ -2,15 +2,20 @@ import json
 import logging
 import os
 import subprocess
+import jwt
+import boto3
+
 from uuid import UUID
 
-import boto3
+
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from fastapi import Depends, status, HTTPException, File
 from fastapi.security import HTTPBearer
-import jwt
+
+from openbabel import openbabel
+
 
 dotenv_path = os.getcwd()+"/.env"
 load_dotenv(dotenv_path)
@@ -25,7 +30,6 @@ def set_up():
         "ISSUER": os.environ.get("AUTH0_ISSUER"),
         "ALGORITHMS": os.environ.get("AUTH0_ALGO"),
     }
-
     return config
 
 
@@ -56,11 +60,12 @@ class VerifyToken:
     def verify(self):
         # This gets the 'kid' from the passed token
         try:
+            print(self.jwks_client.get_signing_key_from_jwt(self.token))
             self.signing_key = self.jwks_client.get_signing_key_from_jwt(self.token).key
         except jwt.exceptions.PyJWKClientError as error:
-            return {"status": "error", "msg": error.__str__()}
+            return {"status": "error", "msg": f"PyJWKClientError: {str(error)}"}
         except jwt.exceptions.DecodeError as error:
-            return {"status": "error", "msg": error.__str__()}
+            return {"status": "error", "msg": f"DecodeError: {str(error)}"}
 
         try:
             payload = jwt.decode(
@@ -114,6 +119,34 @@ class VerifyToken:
                 )
                 return result
         return result
+
+def convert_file_to_xyz(input_file_string) -> str:
+    obc = openbabel.OBConversion()
+    obc.SetInAndOutFormats("pdb","xyz")
+    structure = openbabel.OBMol()
+    try:
+#         obc.ReadString(structure, """HEADER    SMALL MOLECULE
+# ATOM      1  C1  ETN     1       0.000   0.000   0.000  1.00  0.00           C
+# ATOM      2  C2  ETN     1       1.540   0.000   0.000  1.00  0.00           C
+# ATOM      3  O   ETN     1       2.040   1.260   0.000  1.00  0.00           O
+# ATOM      4  H1  ETN     1      -0.540   0.900   0.000  1.00  0.00           H
+# ATOM      5  H2  ETN     1      -0.540  -0.900   0.000  1.00  0.00           H
+# ATOM      6  H3  ETN     1       2.540  -0.900   0.000  1.00  0.00           H
+# ATOM      7  H4  ETN     1       1.540   0.540   0.900  1.00  0.00           H
+# ATOM      8  H5  ETN     1       1.540   0.540  -0.900  1.00  0.00           H
+# ATOM      9  H6  ETN     1       2.040   1.800  -0.900  1.00  0.00           H
+# TER
+# END
+# """)
+        # TODO: Fix issue with newlines
+        obc.ReadString(structure, input_file_string)
+    except Exception as e:
+        print(e)
+    try:
+        output_string = obc.WriteString(structure)
+        return output_string
+    except Exception as e:
+        print(e)
 
 # TODO: use openbabel to convert file type for consistency *.xyz
 def upload_to_s3(file: File, structure_id: UUID):
@@ -203,7 +236,7 @@ def cluster_call(action: str, parameters: dict):
     json_data = json.dumps(command_data)
     main_exec_path = os.environ.get("CLUSTER_LOC")
     ssh_command = ["ssh", "cluster", "python3", main_exec_path]
-
+    # ssh_command = ["python3", main_exec_path]
     try:
         process = subprocess.Popen(
             ssh_command,
