@@ -27,7 +27,6 @@ def set_up():
     config = {
         "DOMAIN": os.environ.get("AUTH0_DOMAIN"),
         "API_AUDIENCE": os.environ.get("AUTH0_AUDIENCE"),
-        "ISSUER": os.environ.get("AUTH0_ISSUER"),
         "ALGORITHMS": os.environ.get("AUTH0_ALGO"),
     }
     return config
@@ -51,7 +50,6 @@ class VerifyToken:
         self.permissions = permissions
         self.scopes = scopes
         self.config = set_up()
-
         # This gets the JWKS from a given URL and does processing so you can use any of
         # the keys available
         jwks_url = f'https://{self.config["DOMAIN"]}/.well-known/jwks.json'
@@ -60,7 +58,6 @@ class VerifyToken:
     def verify(self):
         # This gets the 'kid' from the passed token
         try:
-            print(self.jwks_client.get_signing_key_from_jwt(self.token))
             self.signing_key = self.jwks_client.get_signing_key_from_jwt(self.token).key
         except jwt.exceptions.PyJWKClientError as error:
             return {"status": "error", "msg": f"PyJWKClientError: {str(error)}"}
@@ -73,7 +70,7 @@ class VerifyToken:
                 self.signing_key,
                 algorithms=self.config["ALGORITHMS"],
                 audience=self.config["API_AUDIENCE"],
-                issuer=self.config["ISSUER"],
+                issuer="http://"+self.config["DOMAIN"],
             )
         except Exception as e:
             return {"status": "error", "message": str(e)}
