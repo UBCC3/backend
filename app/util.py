@@ -214,12 +214,11 @@ def read_from_s3(file_name: str, structure_id: UUID):
     file_key = structure_id + "/" + file_name
     try:
         response = s3.get_object(Bucket=os.environ.get("S3_BUCKET"), Key=file_key)
-        bytes = response["Body"].read()
-        # pythonObject = json.loads(obj['Body'].read().decode('utf-8'))
-        return bytes
+        # bytes = response["Body"].read()
+        result = json.loads(obj['Body'].read().decode('utf-8'))
+        return result
     except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
+        raise HTTPException(status_code=400, detail=str(e))
 
 def item_to_dict(item):
     return {c.name: getattr(item, c.name) for c in item.__table__.columns}

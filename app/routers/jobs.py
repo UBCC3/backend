@@ -158,6 +158,15 @@ async def cancel_running_job(job_id: UUID, token: str = Depends(token_auth)):
     else:
         raise HTTPException(status_code=404, detail="Job not cancelled")
 
+@router.get("/result/{job_id}", response_model=Union[dict, JwtErrorModel])
+async def get_job_result(
+    job_id: UUID,
+    response: Response,
+    token = Depends(token_auth)
+):
+    result = read_from_s3("result.json",job_id)
+    return result
+
 # NOTE: disabled for now
 # @router.get("/download/{job_id}/{file_name}", response_model=Union[str, JwtErrorModel])
 # async def download(
