@@ -29,7 +29,7 @@ async def get_users(response: Response, request: Request , token: str = Depends(
 
 @router.get("/user-exists", response_model=Union[bool, JwtErrorModel])
 async def get_user_exists(
-    email: str, request: Request, response: Response, token: str = Depends(token_auth)
+    email: str, request: Request, response: Response , token: str = Depends(token_auth)
 ):
     return check_user_exists(email)
 

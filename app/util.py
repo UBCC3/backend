@@ -70,7 +70,7 @@ class VerifyToken:
                 self.signing_key,
                 algorithms=self.config["ALGORITHMS"],
                 audience=self.config["API_AUDIENCE"],
-                issuer="http://"+self.config["DOMAIN"],
+                issuer="https://"+self.config["DOMAIN"],
             )
         except Exception as e:
             return {"status": "error", "message": str(e)}
