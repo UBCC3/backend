@@ -18,6 +18,7 @@ from ..database.job_management import (
     post_new_job,
     update_job,
     remove_job,
+    get_job_by_id,
 )
 from ..database.structure_management import get_structure_by_job_id
 
@@ -180,3 +181,10 @@ async def cancel_running_job(job_id: UUID, token: str = Depends(token_auth)):
 #     token: str = Depends(token_auth)
 # ):
 #     return read_from_s3(file_name, job_id)
+
+@router.get("/{job_id}", response_model=Union[JobModel, JwtErrorModel])
+async def get_job(job_id: UUID):
+    job = get_job_by_id(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job

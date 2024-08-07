@@ -231,3 +231,18 @@ def remove_job(job_id: UUID) -> bool:
             print(f"Error: {str(e)}")
             return False
 
+def get_job_by_id(job_id: UUID) -> JobModel:
+    """Gets the job by job id
+
+    Args:
+        id (str): job id
+
+    Returns:
+        JobModel: Job
+    """
+
+    with Session(db_engine.engine) as session:
+        job = session.query(Job).filter(
+            Job.id == job_id
+        ).first()
+    return job
