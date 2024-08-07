@@ -167,6 +167,16 @@ async def get_job_result(
     result = read_from_s3("result.json",job_id)
     return result
 
+@router.get("/download/{job_id}")
+async def download_all(
+    job_id: UUID,
+    response = Response,
+    token: str = Depends(token_auth)
+):
+    url = download_from_s3(str(job_id)+".zip", job_id)
+    return {"url": url}
+    
+
 # NOTE: disabled for now
 # @router.get("/download/{job_id}/{file_name}", response_model=Union[str, JwtErrorModel])
 # async def download(

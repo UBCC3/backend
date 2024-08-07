@@ -194,18 +194,18 @@ def create_presigned_post(object_name, fields=None, conditions=None, expiration=
 #       files in s3 should all be in .xyz from the upload fn
 def download_from_s3(file_name: str, structure_id: UUID):
     s3 = boto3.client("s3")
-    file = file_name + '.xyz'
-    file_key = str(structure_id) + "/" + file
+    file_key = str(structure_id) + "/" + file_name
     try:
         response = s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": os.environ.get("S3_BUCKET"), "Key": file_key},
             ExpiresIn=60,  # One minute, should be enough time to download file?
         )
-        print('respnse', response)
         return response
+    except (NoCredentialsError, PartialCredentialsError):
+        raise HTTPException(status_code=403, detail="Credentials not available")
     except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # NOTE: route for reading file disabled for now
