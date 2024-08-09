@@ -51,7 +51,10 @@ logger = logging.getLogger(__name__)
 
 # TODO: Add authentication back in
 @router.get("/", response_model=Union[list[JobModel], JwtErrorModel])
-async def get_jobs(response: Response, token: str = Depends(token_auth)):
+async def get_jobs(
+    response: Response,
+    # token: str = Depends(token_auth)
+    ):
     jobs = get_all_jobs()
 
     job_dicts = [job.__dict__ for job in jobs]
@@ -61,7 +64,9 @@ async def get_jobs(response: Response, token: str = Depends(token_auth)):
 
 @router.get("/in-progress", response_model=Union[list[JobModel], JwtErrorModel])
 async def get_in_progress_jobs(
-    email: str, response: Response, token: str = Depends(token_auth)
+    email: str,
+    response: Response,
+    # token: str = Depends(token_auth)
 ):
     jobs = get_all_running_jobs(email)
 
@@ -74,7 +79,7 @@ async def get_in_progress_jobs(
 async def get_complete_jobs(
     email: str,
     response: Response,
-    token: str = Depends(token_auth),
+    # token: str = Depends(token_auth),
 ):
     jobs = get_all_completed_jobs(email)
 
@@ -89,8 +94,8 @@ async def get_paginated_complete_jobs(
     response: Response,
     filter: str,
     limit: int = 5,
-    offset: int = 0,
-    token: str = Depends(token_auth)
+    offset: int = 0
+    # token: str = Depends(token_auth)
 ):
     total_count = get_completed_jobs_count(email, filter)
     data = get_paginated_completed_jobs(email, limit, offset, filter)
@@ -109,15 +114,15 @@ async def create_new_job(
     job_name: str = Form(...),
     parameters: str = Form(...),
     file: UploadFile = File(None),
-    token: str = Depends(token_auth)
+    # token: str = Depends(token_auth)
 
 ):
     job = CreateJobDTO(job_name=job_name, parameters=json.loads(parameters))
     db_job_id = uuid.uuid4()
     job.parameters["id"] = str(db_job_id)
     try:
-        input_file_string = file.file.read()
-        input_file_string.replace("\n", "")
+        input_file_string = file.file.read().decode(encoding="utf-8")
+        input_file_string = input_file_string.replace("\n", " ")
         job.parameters["job_structure"] = convert_file_to_xyz(input_file_string)
     except Exception as e:
         raise HTTPException(status_code=400, detail="Job was not submitted")
@@ -129,7 +134,11 @@ async def create_new_job(
 
 
 @router.patch("/{job_id}", response_model=Union[bool, JwtErrorModel])
-async def patch_job(job_id: UUID, job: UpdateJobDTO, token: str = Depends(token_auth)):
+async def patch_job(
+    job_id: UUID,
+    job: UpdateJobDTO,
+    # token: str = Depends(token_auth)
+    ):
     cancel_job_data = {"id":str(job_id)}
     cancel_result = cancel_job(cancel_job_data)
     if cancel_result:
@@ -145,12 +154,18 @@ async def patch_job(job_id: UUID, job: UpdateJobDTO, token: str = Depends(token_
 
 
 @router.delete("/{job_id}", response_model=Union[bool, JwtErrorModel])
-async def delete_job(job_id: UUID, token: str = Depends(token_auth)):
+async def delete_job(
+    job_id: UUID,
+    # token: str = Depends(token_auth)
+    ):
 
     return remove_job(job_id)
 
 @router.patch("/cancel/{job_id}", response_model=Union[bool, JwtErrorModel])
-async def cancel_running_job(job_id: UUID, token: str = Depends(token_auth)):
+async def cancel_running_job(
+    job_id: UUID,
+    token: str = Depends(token_auth)
+    ):
     cancel_job_data = {"id":str(job_id)}
     cancel_result = cancel_job(cancel_job_data)
     if cancel_result:
