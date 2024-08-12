@@ -211,7 +211,7 @@ def download_from_s3(file_name: str, structure_id: UUID):
 # NOTE: route for reading file disabled for now
 def read_from_s3(file_name: str, structure_id: UUID):
     s3 = boto3.client("s3")
-    file_key = structure_id + "/" + file_name
+    file_key = str(structure_id) + "/" + file_name
     try:
         response = s3.get_object(Bucket=os.environ.get("S3_BUCKET"), Key=file_key)
         # bytes = response["Body"].read()

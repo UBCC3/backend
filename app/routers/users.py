@@ -23,20 +23,29 @@ token_auth_schema = HTTPBearer()
 
 
 @router.get("/", response_model=Union[list[UserModel], JwtErrorModel])
-async def get_users(response: Response, request: Request , token: str = Depends(token_auth)):
+async def get_users(
+    response: Response, 
+    request: Request , 
+    token: str = Depends(token_auth)
+    ):
     return get_all_users()
 
 
 @router.get("/user-exists", response_model=Union[bool, JwtErrorModel])
 async def get_user_exists(
-    email: str, request: Request, response: Response , token: str = Depends(token_auth)
+    email: str, 
+    request: Request, 
+    response: Response , 
+    token: str = Depends(token_auth)
 ):
     return check_user_exists(email)
 
 
 @router.post("/", response_model=Union[bool, JwtErrorModel])
 async def create_user(
-    user: UserModel, response: Response, token: str = Depends(token_auth)
+    user: UserModel, 
+    response: Response, 
+    token: str = Depends(token_auth)
 ):
     user_exists = check_user_exists(user.email)
     if user_exists:
@@ -47,7 +56,9 @@ async def create_user(
 
 @router.patch("/", response_model=Union[bool, JwtErrorModel])
 async def patch_user(
-    user: UserModel, response: Response, token: str = Depends(token_auth)
+    user: UserModel, 
+    response: Response, 
+    token: str = Depends(token_auth)
 ):
     res = update_user(user)
     if not res:

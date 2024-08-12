@@ -8,6 +8,7 @@ from fastapi import (
     UploadFile,
     Form,
 )
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer
 from ..database.job_management import (
     get_all_jobs,
@@ -53,7 +54,7 @@ logger = logging.getLogger(__name__)
 @router.get("/", response_model=Union[list[JobModel], JwtErrorModel])
 async def get_jobs(
     response: Response,
-    # token: str = Depends(token_auth)
+    token: str = Depends(token_auth)
     ):
     jobs = get_all_jobs()
 
@@ -66,7 +67,7 @@ async def get_jobs(
 async def get_in_progress_jobs(
     email: str,
     response: Response,
-    # token: str = Depends(token_auth)
+    token: str = Depends(token_auth)
 ):
     jobs = get_all_running_jobs(email)
 
@@ -79,7 +80,7 @@ async def get_in_progress_jobs(
 async def get_complete_jobs(
     email: str,
     response: Response,
-    # token: str = Depends(token_auth),
+    token: str = Depends(token_auth),
 ):
     jobs = get_all_completed_jobs(email)
 
@@ -94,8 +95,8 @@ async def get_paginated_complete_jobs(
     response: Response,
     filter: str,
     limit: int = 5,
-    offset: int = 0
-    # token: str = Depends(token_auth)
+    offset: int = 0,
+    token: str = Depends(token_auth),
 ):
     total_count = get_completed_jobs_count(email, filter)
     data = get_paginated_completed_jobs(email, limit, offset, filter)
@@ -114,7 +115,7 @@ async def create_new_job(
     job_name: str = Form(...),
     parameters: str = Form(...),
     file: UploadFile = File(None),
-    # token: str = Depends(token_auth)
+    token: str = Depends(token_auth)
 
 ):
     job = CreateJobDTO(job_name=job_name, parameters=json.loads(parameters))
@@ -128,7 +129,8 @@ async def create_new_job(
         raise HTTPException(status_code=400, detail="Job was not submitted")
     else:
         if submit_job(job):
-            return post_new_job(email, job, db_job_id,file)
+            post_new_job(email, job, db_job_id,file)
+            return JSONResponse(content=job.parameters, status_code=200)
         else:
             raise HTTPException(status_code=500, detail="Job failed on the cluster")
 
@@ -137,7 +139,7 @@ async def create_new_job(
 async def patch_job(
     job_id: UUID,
     job: UpdateJobDTO,
-    # token: str = Depends(token_auth)
+    token: str = Depends(token_auth)
     ):
     cancel_job_data = {"id":str(job_id)}
     cancel_result = cancel_job(cancel_job_data)
@@ -156,7 +158,7 @@ async def patch_job(
 @router.delete("/{job_id}", response_model=Union[bool, JwtErrorModel])
 async def delete_job(
     job_id: UUID,
-    # token: str = Depends(token_auth)
+    token: str = Depends(token_auth)
     ):
 
     return remove_job(job_id)
@@ -173,15 +175,19 @@ async def cancel_running_job(
     else:
         raise HTTPException(status_code=404, detail="Job not cancelled")
 
-@router.get("/result/{job_id}", response_model=Union[dict, JwtErrorModel])
+@router.get("/{job_id}", response_model=Union[dict, JwtErrorModel])
 async def get_job_result(
     job_id: UUID,
     response: Response,
     token = Depends(token_auth)
 ):
     result = read_from_s3("result.json",job_id)
-    return result
-
+    # try:
+    #     with open('./result_sample.json', 'r') as file:
+    #         result = json.load(file)
+    #         return result
+    # except Exception as error:
+    #     raise HTTPException(status_code = 400, detail = str(error))
 @router.get("/download/{job_id}")
 async def download_all(
     job_id: UUID,
