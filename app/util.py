@@ -28,6 +28,7 @@ def set_up():
         "DOMAIN": os.environ.get("AUTH0_DOMAIN"),
         "API_AUDIENCE": os.environ.get("AUTH0_AUDIENCE"),
         "ALGORITHMS": os.environ.get("AUTH0_ALGO"),
+        "ISSUER": os.environ.get("AUTH0_ISSUER")
     }
     return config
 
@@ -70,7 +71,7 @@ class VerifyToken:
                 self.signing_key,
                 algorithms=self.config["ALGORITHMS"],
                 audience=self.config["API_AUDIENCE"],
-                issuer="https://"+self.config["DOMAIN"],
+                issuer=self.config["ISSUER"],
             )
         except Exception as e:
             return {"status": "error", "message": str(e)}
