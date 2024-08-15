@@ -27,8 +27,8 @@ def set_up():
     config = {
         "DOMAIN": os.environ.get("AUTH0_DOMAIN"),
         "API_AUDIENCE": os.environ.get("AUTH0_AUDIENCE"),
-        "ISSUER": os.environ.get("AUTH0_ISSUER"),
         "ALGORITHMS": os.environ.get("AUTH0_ALGO"),
+        "ISSUER": os.environ.get("AUTH0_ISSUER")
     }
     return config
 
@@ -51,7 +51,6 @@ class VerifyToken:
         self.permissions = permissions
         self.scopes = scopes
         self.config = set_up()
-
         # This gets the JWKS from a given URL and does processing so you can use any of
         # the keys available
         jwks_url = f'https://{self.config["DOMAIN"]}/.well-known/jwks.json'
@@ -60,7 +59,6 @@ class VerifyToken:
     def verify(self):
         # This gets the 'kid' from the passed token
         try:
-            print(self.jwks_client.get_signing_key_from_jwt(self.token))
             self.signing_key = self.jwks_client.get_signing_key_from_jwt(self.token).key
         except jwt.exceptions.PyJWKClientError as error:
             return {"status": "error", "msg": f"PyJWKClientError: {str(error)}"}
@@ -197,32 +195,31 @@ def create_presigned_post(object_name, fields=None, conditions=None, expiration=
 #       files in s3 should all be in .xyz from the upload fn
 def download_from_s3(file_name: str, structure_id: UUID):
     s3 = boto3.client("s3")
-    file = file_name + '.xyz'
-    file_key = str(structure_id) + "/" + file
+    file_key = str(structure_id) + "/" + file_name
     try:
         response = s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": os.environ.get("S3_BUCKET"), "Key": file_key},
             ExpiresIn=60,  # One minute, should be enough time to download file?
         )
-        print('respnse', response)
         return response
+    except (NoCredentialsError, PartialCredentialsError):
+        raise HTTPException(status_code=403, detail="Credentials not available")
     except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # NOTE: route for reading file disabled for now
 def read_from_s3(file_name: str, structure_id: UUID):
     s3 = boto3.client("s3")
-    file_key = structure_id + "/" + file_name
+    file_key = str(structure_id) + "/" + file_name
     try:
         response = s3.get_object(Bucket=os.environ.get("S3_BUCKET"), Key=file_key)
-        bytes = response["Body"].read()
-        # pythonObject = json.loads(obj['Body'].read().decode('utf-8'))
-        return bytes
+        # bytes = response["Body"].read()
+        result = json.loads(obj['Body'].read().decode('utf-8'))
+        return result
     except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
+        raise HTTPException(status_code=400, detail=str(e))
 
 def item_to_dict(item):
     return {c.name: getattr(item, c.name) for c in item.__table__.columns}

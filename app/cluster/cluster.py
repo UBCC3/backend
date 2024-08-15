@@ -70,6 +70,7 @@ async def upload_result(job_id, path_name):
         raise HTTPException(status_code=500, detail=str(e))
 
 def submit_job(job):
+    return True
     try:
         # print(job)
         return_data = cluster_call("submit", job.parameters)
@@ -78,8 +79,8 @@ def submit_job(job):
         # raise HTTPException(status_code=500, detail=str(error))
     else:
         if return_data["status"] == "SUCCESS":
-            return JSONResponse(content=return_data, status_code=200) 
-        return HTTPException(status_code=500, detail= "Job submission failed on cluster")
+            return True
+        return False
 def cancel_job(job):
     try:
         return_data = cluster_call("cancel",job)
