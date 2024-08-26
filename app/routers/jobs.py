@@ -222,7 +222,7 @@ async def download_all(
 # ):
 #     return read_from_s3(file_name, job_id)
 
-@router.get("/{job_id}", response_model=Union[JobModel, JwtErrorModel])
+@router.get("/job-info/{job_id}", response_model=Union[JobModel, JwtErrorModel])
 async def get_job(job_id: UUID):
     job = get_job_by_id(job_id)
     if not job:
